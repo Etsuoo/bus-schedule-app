@@ -1,3 +1,18 @@
+
+// 路線の詳細情報
+const routeDetails = {
+  "渋63": {
+    fullName: " [京王] 渋谷駅行",
+    destination: "渋谷駅",
+    via: ["幡ヶ谷原町", "幡ヶ谷駅", "幡代", "新国立劇場", "東京オペラシティ南", "初台坂上", "南初台", "初台坂下", "八幡下", "代々木八幡駅入口", "富ヶ谷", "放送センター西口", "渋谷区役所", "神南一丁目", "渋谷駅"]
+  },
+  "渋66": {
+    fullName: "[京王/都営バス] 渋谷駅行",
+    destination: "渋谷駅",
+    via: ["幡ヶ谷原町", "幡ヶ谷駅", "幡代", "新国立劇場", "東京オペラシティ南", "初台坂上", "南初台", "初台坂下", "八幡下", "代々木八幡駅入口", "富ヶ谷","神山","東急百貨店本店前","渋谷駅"]
+  }
+};
+
 // バスの時刻表データ（サンプル）
 const busData = {
     "平日": {
@@ -102,6 +117,129 @@ const busData = {
               "21:00", "21:15"]
     }
 };
+// 目的地検索機能
+function searchDestination() {
+  const destination = document.getElementById('destination-input').value.trim();
+  const resultsElement = document.getElementById('search-results');
+  
+  if (!destination) {
+    resultsElement.innerHTML = '<p>目的地を入力してください</p>';
+    return;
+  }
+  
+  // 目的地に合致する路線を検索
+  let matchingRoutes = [];
+  let viaRoutes = [];
+  
+  for (const [routeName, details] of Object.entries(routeDetails)) {
+    // 終点（渋谷駅）が一致するか
+    if (details.destination.includes(destination)) {
+      matchingRoutes.push({
+        name: routeName,
+        details: details
+      });
+    } 
+    // 経由地に含まれるか
+    else if (details.via.some(stop => stop.includes(destination))) {
+      viaRoutes.push({
+        name: routeName,
+        details: details,
+        stopIndex: details.via.findIndex(stop => stop.includes(destination))
+      });
+    }
+  }
+  
+  // 検索結果の表示
+  if (matchingRoutes.length === 0 && viaRoutes.length === 0) {
+    resultsElement.innerHTML = `<p>「${destination}」に行く路線は見つかりませんでした</p>`;
+    return;
+  }
+  
+  let resultsHTML = `<h3>「${destination}」への路線</h3>`;
+  
+  // 現在の日時情報を取得
+  const dateInfo = getCurrentDateInfo();
+  const currentTime = dateInfo.now;
+  
+  // まず終点一致の路線を表示
+  if (matchingRoutes.length > 0) {
+    matchingRoutes.forEach(route => {
+      const times = busData[dateInfo.dayType][route.name];
+      const nextBusInfo = calculateNextBus(times, currentTime);
+      
+      // 駅のリスト表示（経路表示）
+      let stationsHTML = '<div class="station-list"><strong>経路:</strong> ';
+      route.details.via.forEach((station, index) => {
+        if (index > 0) stationsHTML += ' → ';
+        if (station === '幡ヶ谷原町') {
+          stationsHTML += `<span class="current">${station}</span>`;
+        } else if (station.includes(destination)) {
+          stationsHTML += `<span class="destination">${station}</span>`;
+        } else {
+          stationsHTML += station;
+        }
+      });
+      stationsHTML += '</div>';
+      
+      resultsHTML += `
+        <div class="bus-line recommended">
+          <h3 class="line-name">${route.name}（${route.details.fullName}）</h3>
+          <p class="route-description">${route.details.description}</p>
+          <div class="time-info">
+            <div class="next-time">次のバス: ${nextBusInfo.nextTime}</div>
+            <div class="time-remaining">${nextBusInfo.isNextDay ? '本日の運行終了' : nextBusInfo.waitMinutes + '分後'}</div>
+          </div>
+          ${stationsHTML}
+          <div class="recommendation">
+            <strong>✓ おすすめ</strong>: 終点まで乗車できます
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  // 次に経由地一致の路線を表示
+  if (viaRoutes.length > 0) {
+    viaRoutes.forEach(route => {
+      const times = busData[dateInfo.dayType][route.name];
+      const nextBusInfo = calculateNextBus(times, currentTime);
+      
+      // 駅のリスト表示（経路表示）
+      let stationsHTML = '<div class="station-list"><strong>経路:</strong> ';
+      route.details.via.forEach((station, index) => {
+        if (index > 0) stationsHTML += ' → ';
+        if (station === '幡ヶ谷原町') {
+          stationsHTML += `<span class="current">${station}</span>`;
+        } else if (station.includes(destination)) {
+          stationsHTML += `<span class="destination">${station}</span>`;
+        } else {
+          stationsHTML += station;
+        }
+      });
+      stationsHTML += '</div>';
+      
+      const getOffStation = route.details.via[route.stopIndex];
+      
+      resultsHTML += `
+        <div class="bus-line">
+          <h3 class="line-name">${route.name}（${route.details.fullName}）</h3>
+          <p class="route-description">${route.details.description}</p>
+          <div class="time-info">
+            <div class="next-time">次のバス: ${nextBusInfo.nextTime}</div>
+            <div class="time-remaining">${nextBusInfo.isNextDay ? '本日の運行終了' : nextBusInfo.waitMinutes + '分後'}</div>
+          </div>
+          ${stationsHTML}
+          <div class="recommendation">
+            <strong>${getOffStation}</strong>で降りてください（${route.stopIndex + 1}番目の停留所）
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  resultsElement.innerHTML = resultsHTML;
+}
+
 
 // 現在の日時情報を取得する関数
 function getCurrentDateInfo() {
@@ -155,38 +293,41 @@ function calculateNextBus(busTimesArray, currentTime) {
 }
 
 // 画面を更新する関数
+// 画面を更新する関数
 function updateDisplay() {
-    const dateInfo = getCurrentDateInfo();
-    const currentTimeElement = document.getElementById('current-time');
-    const scheduleElement = document.getElementById('bus-schedule');
+  const dateInfo = getCurrentDateInfo();
+  const currentTimeElement = document.getElementById('current-time');
+  const scheduleElement = document.getElementById('bus-schedule');
+  
+  // 現在時刻と曜日を表示
+  const formattedMinutes = String(dateInfo.now.getMinutes()).padStart(2, '0');
+  currentTimeElement.textContent = `現在時刻: ${dateInfo.now.getHours()}:${formattedMinutes} (${dateInfo.dayOfWeek}曜日)`;
+  
+  // 時刻表のデータが存在するか確認
+  if (!busData[dateInfo.dayType]) {
+    scheduleElement.innerHTML = `<p>エラー: ${dateInfo.dayType}のデータがありません</p>`;
+    return;
+  }
+  
+  // 各路線の次のバス時刻を計算して表示
+  let scheduleHTML = '';
+  for (const [line, times] of Object.entries(busData[dateInfo.dayType])) {
+    const nextBusInfo = calculateNextBus(times, dateInfo.now);
+    const routeInfo = routeDetails[line] || { description: "" };
     
-    // 現在時刻と曜日を表示
-    const formattedMinutes = String(dateInfo.now.getMinutes()).padStart(2, '0');
-    currentTimeElement.textContent = `現在時刻: ${dateInfo.now.getHours()}:${formattedMinutes} (${dateInfo.dayOfWeek}曜日)`;
-    
-    // 時刻表のデータが存在するか確認
-    if (!busData[dateInfo.dayType]) {
-        scheduleElement.innerHTML = `<p>エラー: ${dateInfo.dayType}のデータがありません</p>`;
-        return;
-    }
-    
-    // 各路線の次のバス時刻を計算して表示
-    let scheduleHTML = '';
-    for (const [line, times] of Object.entries(busData[dateInfo.dayType])) {
-        const nextBusInfo = calculateNextBus(times, dateInfo.now);
-        
-        scheduleHTML += `
-            <div class="bus-line">
-                <h3 class="line-name">${line}</h3>
-                <div class="time-info">
-                    <div class="next-time">次のバス: ${nextBusInfo.nextTime}</div>
-                    <div class="time-remaining">${nextBusInfo.isNextDay ? '本日の運行終了' : nextBusInfo.waitMinutes + '分後'}</div>
-                </div>
-            </div>
-        `;
-    }
-    
-    scheduleElement.innerHTML = scheduleHTML;
+    scheduleHTML += `
+      <div class="bus-line">
+        <h3 class="line-name">${line}（${routeInfo.fullName || line}）</h3>
+        <p class="route-description">${routeInfo.description}</p>
+        <div class="time-info">
+          <div class="next-time">次のバス: ${nextBusInfo.nextTime}</div>
+          <div class="time-remaining">${nextBusInfo.isNextDay ? '本日の運行終了' : nextBusInfo.waitMinutes + '分後'}</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  scheduleElement.innerHTML = scheduleHTML;
 }
 
 // 更新ボタンのイベントハンドラ
