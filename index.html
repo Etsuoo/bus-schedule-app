@@ -12,7 +12,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 15px;
-            background-color: #f5f5f5;
+            background-color: #FAF9F5; /* 元の #f5f5f5 から変更 */
         }
         .header {
             text-align: center;
@@ -65,6 +65,75 @@
         .refresh-button:active {
             background-color: #2980b9;
         }
+        .destination-search {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.search-form {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.search-form input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px 0 0 4px;
+  font-size: 1em;
+}
+
+.search-form button {
+  padding: 10px 15px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+}
+
+.recommended {
+  border-left: 4px solid #2ecc71;
+  background-color: #f7fdf9;
+}
+
+.route-description {
+  color: #7f8c8d;
+  font-size: 0.9em;
+  margin: 5px 0 10px 0;
+}
+
+.recommendation {
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.recommendation strong {
+  color: #2ecc71;
+}
+
+.station-list {
+  margin-top: 10px;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.station-list .current {
+  font-weight: bold;
+  color: #e74c3c;
+}
+
+.station-list .destination {
+  font-weight: bold;
+  color: #2ecc71;
+}
+
     </style>
 </head>
 <body>
@@ -75,7 +144,14 @@
     <div class="current-time" id="current-time">
         現在時刻: 読み込み中...
     </div>
-    
+    <div class="destination-search">
+    <h2>目的地検索</h2>
+    <div class="search-form">
+    <input type="text" id="destination-input" placeholder="目的地を入力（例: 渋谷、初台）">
+    <button onclick="searchDestination()">検索</button>
+    </div>
+    <div id="search-results" class="search-results"></div>
+    </div> 
     <div id="bus-schedule">
         <!-- ここにバスの時刻が動的に表示されます -->
         読み込み中...
